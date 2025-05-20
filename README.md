@@ -8,7 +8,9 @@ This directory contains three critical files:
 * `docker-compose.yml`: Configuration for Docker.
 * `tng_init.sh`: A bash script that is copied into the container and run there to perform configuration according to the values in `.env`.
 
-# Installation with Docker
+You can also use this without Docker to automate installation. See down below.
+
+## Installation with Docker
 
 Before you can install, you must download the TNG source code and place the ZIP file in this directory. The file name does not matter, as long as it ends in `.zip`.
 
@@ -22,11 +24,11 @@ Then, to install TNG in Docker and configure it so it is ready to go, follow the
 
 That’s all there is to it.
 
-## Starting from scratch (again)
+### Starting from scratch (again)
 
 The Docker configuration uses host-mounted volumes so that the database and TNG server files are permanently preserved, even when the containers are shut down and restarted. The initialization script, when complete, removes the ZIP file, preventing the initialization from running again. This is generally what is desired.
 
-### Removing the permanent volumes
+#### Removing the permanent volumes
 
 If you wish to remove the permanent volumes, use:
 
@@ -36,7 +38,7 @@ $ docker compose down -v
 
 If you then bring the containers up again later, these volumes will be recreated and will again contain the ZIP file, so initialization will occur again. However, the same `.env`, `tng_init.sh,` and ZIP files as were used initially will be used.
 
-### Restarting after editing the `.env` file
+#### Restarting after editing the `.env` file
 
 If you modify any one of the three critical files, or even download, or replace, the ZIP file, you must start over in a different manner. This is because Docker will maintain a copy of the original image built for the TNG server, and that image contains the old files.
 
@@ -48,11 +50,11 @@ $ docker compose build --no-cache
 
 Then, proceed with bringing the containers up.
 
-## Controlling the configuration
+### Controlling the configuration
 
 The configuration is controlled by editing the `.env` file before running Docker. This file defines a series of variables used by both the Docker Compose command and the initialization script. Most everything has a default, but at minimum, you should look at the variables for step 8 (create a user) and Step 9 (create a tree).
 
-### Step 0 - MYSQL
+#### Step 0 - MYSQL
 
 Here you will define or change the name of the database used, the username, and password for MYSQL (used by TNG) as well as a root password for the database. These are the variables with their defaults:
 
@@ -63,7 +65,7 @@ MYSQL_PASSWORD=tng_secret
 MYSQL_ROOT_PASSWORD=tng_very_secret
 ```
 
-### Step 0 - ZIP file
+#### Step 0 - ZIP file
 
 As long as only a single ZIP file is downloaded, nothing is required. If you have multiple different versions, you should designate the desired one using by uncommenting and defining:
 
@@ -71,7 +73,7 @@ As long as only a single ZIP file is downloaded, nothing is required. If you hav
 TNG_ZIP_FILE=tngfiles1501.zip
 ```
 
-### Step 4 - Rename (two) folders
+#### Step 4 - Rename (two) folders
 
 In this step, you can configure various folders to be renamed. The first two correspond to those in the `readme.html`. The variables shown below are with their defaults, and can be uncommented and changed as desired:
 
@@ -87,7 +89,7 @@ In this step, you can configure various folders to be renamed. The first two cor
 #TNG_FOLDER_MODSPATH="mods"
 ```
 
-### Step 5 - Choose your language
+#### Step 5 - Choose your language
 
 The default will be for “English (UTF-8)”, but change the variable as desired.
 
@@ -145,7 +147,7 @@ Swedish (ISO-8859-1)
 Turkish (UTF-8)
 ```
 
-### Step 6 - Establish connection to your database
+#### Step 6 - Establish connection to your database
 
 On rare occasions, you may have to override one or both of these two variables, which default to empty values:
 
@@ -154,7 +156,7 @@ On rare occasions, you may have to override one or both of these two variables, 
 #TNG_DB_SOCKET=
 ```
 
-### Step 7 - Create database tables
+#### Step 7 - Create database tables
 
 Tables can have a configurable prefix in their names, and you can define/change the collation order, as desired:
 
@@ -163,7 +165,7 @@ Tables can have a configurable prefix in their names, and you can define/change 
 #TNG_DB_COLLATION=utf8_general_ci
 ```
 
-### Step 8 - Create a user for yourself
+#### Step 8 - Create a user for yourself
 
 Change these to suit your situation:
 
@@ -174,7 +176,7 @@ TNG_REALNAME="Nobody Special"
 TNG_EMAIL="nobody@acme.org"
 ```
 
-### Step 9 - Create a tree
+#### Step 9 - Create a tree
 
 Change these to suit your situation:
 
@@ -183,7 +185,7 @@ Change these to suit your situation:
 #TNG_TREE_NAME="My Genealogy"
 ```
 
-### Step 10 - Select a template
+#### Step 10 - Select a template
 
 Change to suit your needs, or leave the default:
 
@@ -191,5 +193,11 @@ Change to suit your needs, or leave the default:
 #TNG_TEMPLATE=23
 ```
 
+## Use without Docker
 
+If you are performing a more traditional installation on a hosted server, you can also use this approach (although I have not specifically tested it). The script in question will still do all the work, but the MySQL configuration is expected to correspond to an already available database.
 
+1. Copy the ZIP archive into this directory.
+2. Edit the `.env` file as described above.
+3. Upload all files (`.env`, `tng_init.sh`, and `tngfiles.zip`)to the server’s HTML directory (typically `/var/www/html`). Leave out the `docker-compose.yml` file!
+4. Log in to the server, go tothe HTML directory and execute the script `tng_init.sh`.
