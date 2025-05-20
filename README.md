@@ -1,0 +1,195 @@
+# TNG Automatic Configuration for Docker
+
+This “utility” was created to allow a fully automated deployment of TNG into a Docker setup, without having to install, then go to the `readme.html` form, and then fill out all kinds of stuff to configure. This allows an easy and repeatable process.
+
+This directory contains three critical files:
+
+* `.env`: Contains environment variable definitions to influence installation and configuration
+* `docker-compose.yml`: Configuration for Docker.
+* `tng_init.sh`: A bash script that is copied into the container and run there to perform configuration according to the values in `.env`.
+
+# Installation with Docker
+
+Before you can install, you must download the TNG source code and place the ZIP file in this directory. The file name does not matter, as long as it ends in `.zip`.
+
+Then, to install TNG in Docker and configure it so it is ready to go, follow these steps:
+
+1. Edit `.env` file as necessary (see below)
+2. Run and install in docker:
+   1. If you are running docker on a remote host, create the remote context by running `docker context create remote-server --docker "host=ssh://root@containers.local` and then switch to using that context by running `docker context use containers`.
+   2. Run `docker compose up`. This should build an image, deploy the necessary MYSQL container, and a container running Apache to serve the TNG site. A script will be run (once) to fully configure the site, based on variables defined in the `.env` file mentioned above. This is, essentially, the equivalent of manually using the `readme.html` file. Use `docker compose up -d` to start in detached mode, but the above is better for testing.
+3. Contact your host in a browser: `http://containers.local:8888`. You should see the home page. The hostname to use depends on where your containers were deployed. The port (8888) can be changed using the `.env` file.
+
+That’s all there is to it.
+
+## Starting from scratch (again)
+
+The Docker configuration uses host-mounted volumes so that the database and TNG server files are permanently preserved, even when the containers are shut down and restarted. The initialization script, when complete, removes the ZIP file, preventing the initialization from running again. This is generally what is desired.
+
+### Removing the permanent volumes
+
+If you wish to remove the permanent volumes, use:
+
+```bash
+$ docker compose down -v
+```
+
+If you then bring the containers up again later, these volumes will be recreated and will again contain the ZIP file, so initialization will occur again. However, the same `.env`, `tng_init.sh,` and ZIP files as were used initially will be used.
+
+### Restarting after editing the `.env` file
+
+If you modify any one of the three critical files, or even download, or replace, the ZIP file, you must start over in a different manner. This is because Docker will maintain a copy of the original image built for the TNG server, and that image contains the old files.
+
+To force a completely new build use:
+
+```bash
+$ docker compose build --no-cache
+```
+
+Then, proceed with bringing the containers up.
+
+## Controlling the configuration
+
+The configuration is controlled by editing the `.env` file before running Docker. This file defines a series of variables used by both the Docker Compose command and the initialization script. Most everything has a default, but at minimum, you should look at the variables for step 8 (create a user) and Step 9 (create a tree).
+
+### Step 0 - MYSQL
+
+Here you will define or change the name of the database used, the username, and password for MYSQL (used by TNG) as well as a root password for the database. These are the variables with their defaults:
+
+```
+MYSQL_DATABASE=tngdb
+MYSQL_USER=tng
+MYSQL_PASSWORD=tng_secret
+MYSQL_ROOT_PASSWORD=tng_very_secret
+```
+
+### Step 0 - ZIP file
+
+As long as only a single ZIP file is downloaded, nothing is required. If you have multiple different versions, you should designate the desired one using by uncommenting and defining:
+
+```
+TNG_ZIP_FILE=tngfiles1501.zip
+```
+
+### Step 4 - Rename (two) folders
+
+In this step, you can configure various folders to be renamed. The first two correspond to those in the `readme.html`. The variables shown below are with their defaults, and can be uncommented and changed as desired:
+
+```
+#TNG_FOLDER_BACKUPPATH="backups"
+#TNG_FOLDER_GEDPATH="gedcom"
+#TNG_FOLDER_MEDIAPATH="media"
+#TNG_FOLDER_PHOTOPATH="photos"
+#TNG_FOLDER_DOCUMENTPATH="documents"
+#TNG_FOLDER_HISTORYPATH="histories"
+#TNG_FOLDER_HEADSTONEPATH="headstones"
+#TNG_FOLDER_GENDEXFILE="gendex"
+#TNG_FOLDER_MODSPATH="mods"
+```
+
+### Step 5 - Choose your language
+
+The default will be for “English (UTF-8)”, but change the variable as desired.
+
+```
+#TNG_LANG="English (UTF-8)"
+```
+
+You must pick a value from this list:
+
+```
+English (ISO-8859-1)
+Afrikaans (UTF-8)
+Afrikaans (ISO-8859-1)
+Arabic (UTF-8)
+Chinese (UTF-8)
+Brazilian Portuguese (UTF-8)
+Brazilian Portuguese (ISO-8859-1)
+Czech (UTF-8)
+Czech (ISO-8859-2)
+Croatian (UTF-8)
+Croatian (ISO-8859-1)
+Danish (UTF-8)
+Danish (ISO-8859-1)
+Dutch (UTF-8)
+Dutch (ISO-8859-1)
+Finnish (UTF-8)
+Finnish (ISO-8859-1)
+French (UTF-8)
+French (ISO-8859-1)
+French (Quebec) (UTF-8)
+German (UTF-8)
+German (ISO-8859-1)
+Greek (UTF-8)
+Hungarian (UTF-8)
+Icelandic (UTF-8)
+Icelandic (ISO-8859-1)
+Italian (UTF-8)
+Italian (ISO-8859-1)
+Norwegian (UTF-8)
+Norwegian (ISO-8859-1)
+Polish (UTF-8)
+Polish (ISO-8859-2)
+Romanian (UTF-8)
+Romanian (ISO-8859-1)
+Russian (UTF-8)
+Serbian (UTF-8)
+Serbian (ISO-8859-1)
+Serbian Cyrillic (UTF-8)
+Slovak (UTF-8)
+Slovak (ISO-8859-1)
+Spanish (UTF-8)
+Spanish (ISO-8859-1)
+Swedish (UTF-8)
+Swedish (ISO-8859-1)
+Turkish (UTF-8)
+```
+
+### Step 6 - Establish connection to your database
+
+On rare occasions, you may have to override one or both of these two variables, which default to empty values:
+
+```
+#TNG_DB_PORT=
+#TNG_DB_SOCKET=
+```
+
+### Step 7 - Create database tables
+
+Tables can have a configurable prefix in their names, and you can define/change the collation order, as desired:
+
+```
+#TNG_DB_TABLE_PREFIX=tng_
+#TNG_DB_COLLATION=utf8_general_ci
+```
+
+### Step 8 - Create a user for yourself
+
+Change these to suit your situation:
+
+```
+TNG_USER=tng
+TNG_PASSWORD=secret
+TNG_REALNAME="Nobody Special"
+TNG_EMAIL="nobody@acme.org"
+```
+
+### Step 9 - Create a tree
+
+Change these to suit your situation:
+
+```
+#TNG_TREE_ID=tree1
+#TNG_TREE_NAME="My Genealogy"
+```
+
+### Step 10 - Select a template
+
+Change to suit your needs, or leave the default:
+
+```
+#TNG_TEMPLATE=23
+```
+
+
+
