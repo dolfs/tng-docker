@@ -5,6 +5,7 @@ services:
     image: tng:latest
     ports:
       - ${TNG_PORT:-8888}:80
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-sL", "http://localhost/readme.html"]
       interval: 30s
