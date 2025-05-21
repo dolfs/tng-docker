@@ -30,6 +30,7 @@ if [[ ! -f "$TNG_ZIP_FILE_PATH" || ! -r "$TNG_ZIP_FILE_PATH" ]]; then
 fi
 if [[ ! -f "$TNG_ZIP_FILE_PATH" || ! -r "$TNG_ZIP_FILE_PATH" ]]; then
 	error_msg "0: No ZIP file (TNG already set up?)!"
+	log_msg "--- TNG might already be installed and ready to use! ---"
 	exit 0
 fi
 log_msg "0: ZIP file \"$TNG_ZIP_FILE_PATH\""
