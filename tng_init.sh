@@ -181,8 +181,19 @@ doCreateTree()
 # Step 10: Select a template (or theme)
 doSetTemplate()
 {
+	getMaxTemplateNumber()
+	{
+		local FOLDER="${1:-templates}"
+		echo "$(ls -d "$FOLDER"/template* | sed -e "s#$FOLDER/template##g" | sort -nr | head -1)"
+	}
 	# Expect: template number or empty for default
-	ajax_subroutine template "newtemplate=${1:-23}"
+	local MAX_NUM=$(getMaxTemplateNumber)
+	local NUM="${1:-$MAX_NUM}"
+	if [ "$NUM" -gt "$MAX_NUM" ]; then
+		log_msg "Template $NUM > $MAX_NUM, adjusted!"
+		NUM=$MAX_NUM
+	fi
+	ajax_subroutine template "newtemplate=$NUM"
 }
 
 # Modify an existing value in a .ini file.
@@ -277,6 +288,6 @@ log_msg "9: Creating initial tree..."
 doCreateTree "${TNG_TREE_ID:-tree1}" "${TNG_TREE_NAME:-My Genealogy}"
 
 log_msg "10: Set template..."
-doSetTemplate "${TNG_TEMPLATE:-}"
+doSetTemplate "${TNG_TEMPLATE:-1}"
 
 log_msg "--- TNG is now installed and ready to use! ---"
