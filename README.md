@@ -75,11 +75,13 @@ MYSQL_ROOT_PASSWORD=tng_very_secret
 
 #### Step 0 - ZIP file
 
-As long as only a single ZIP file is downloaded, nothing is required. If you have multiple different versions, you should designate the desired one by uncommenting and defining:
+You must specify a specific ZIP archive as the one used for TNG installation. You should designate the desired one by defining:
 
 ```
 TNG_ZIP_FILE=tngfiles1501.zip
 ```
+
+The file must be located in the same folder as the other files in this repository.
 
 #### Step 4 - Rename (two) folders
 

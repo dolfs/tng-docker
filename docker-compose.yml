@@ -39,7 +39,7 @@ services:
         
         FROM php:7-apache
 
-        COPY ${TNG_ZIP_FILE:-tng*.zip} /var/www/html/
+        COPY ${TNG_ZIP_FILE:-tngfiles1502.zip} /var/www/html/
         COPY ./tng_init.sh /var/www/html
         COPY ./.env /var/www/html
         
