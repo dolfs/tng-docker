@@ -3,6 +3,29 @@ services:
   tng:
     container_name: tng
     image: tng:latest
+    ports:
+      - ${TNG_PORT:-8888}:80
+    healthcheck:
+      test: ["CMD", "curl", "-sL", "http://localhost/readme.html"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    tty: true
+    stdin_open: true
+    volumes:
+      - "/etc/localtime:/etc/localtime:ro"
+      - data:/var/www/html
+      - php_conf:/usr/local/etc/php
+    depends_on:
+      tng_db:
+        condition: service_healthy
+      tng_init:
+        condition: service_completed_successfully
+
+  tng_init:
+    # Perform TNG file unpacking and initialization
+    image: tng:latest
+    container_name: tng_init
     build:
       context: .
       dockerfile_inline: |
@@ -22,36 +45,18 @@ services:
         RUN docker-php-ext-install pdo_mysql
         RUN docker-php-ext-install mysqli
         RUN apt-get update -y && apt-get install -y unzip
-    ports:
-      - ${TNG_PORT:-8888}:80
-    healthcheck:
-      test: ["CMD", "curl", "-sL", "http://localhost/readme.html"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+        RUN cp /usr/local/etc/php/php.ini-production /usr/local/etc/php/php.ini
+    restart: no
+    command: [ "/bin/bash", "/var/www/html/tng_init.sh" ]
     tty: true
     stdin_open: true
     volumes:
       - "/etc/localtime:/etc/localtime:ro"
       - data:/var/www/html
+      - php_conf:/usr/local/etc/php
     depends_on:
       tng_db:
         condition: service_healthy
-
-  tng_init:
-    # Perform TNG file unpacking and initialization
-    image: tng:latest
-    container_name: tng_init
-    restart: no
-    command: [ "/bin/bash", "/var/www/html/tng_init.sh", "${TNG_HOST:-tng}" ]
-    tty: true
-    stdin_open: true
-    volumes:
-      - "/etc/localtime:/etc/localtime:ro"
-      - data:/var/www/html
-    depends_on:
-      tng:
-        condition: service_started
 
   tng_db:
     image: mysql:latest
@@ -91,4 +96,5 @@ services:
 volumes:
   db:
   data:
+  php_conf:
 

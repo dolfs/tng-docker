@@ -17,7 +17,8 @@ if [ -r .env ]; then
 fi
 
 # Determine name of TNG host from first argument
-TNG_HOST="${1:-tng}"
+# Normally this would be the same host as where this script runs
+TNG_HOST="${1:-localhost}"
 
 # Compute absolute path of ZIP file with TNG source code
 SCRIPT_DIR="$( dirname -- "$( readlink -f -- "$0" )" )"
@@ -25,10 +26,12 @@ SCRIPT_DIR="$( dirname -- "$( readlink -f -- "$0" )" )"
 # See if we have, or can find, a ZIP file with source code
 TNG_ZIP_FILE_PATH="${SCRIPT_DIR}/${TNG_ZIP_FILE}"
 if [[ ! -f "$TNG_ZIP_FILE_PATH" || ! -r "$TNG_ZIP_FILE_PATH" ]]; then
+	# Not found. As an alternate try and tng*.zip file
 	TNG_ZIP_FILE="$(ls tng*.zip 2>/dev/null)"
 	TNG_ZIP_FILE_PATH="${SCRIPT_DIR}/${TNG_ZIP_FILE}"
 fi
 if [[ ! -f "$TNG_ZIP_FILE_PATH" || ! -r "$TNG_ZIP_FILE_PATH" ]]; then
+	# Still not found, must already be configured.
 	error_msg "0: No ZIP file (TNG already set up?)!"
 	log_msg "--- TNG might already be installed and ready to use! ---"
 	exit 0
@@ -182,17 +185,58 @@ doSetTemplate()
 	ajax_subroutine template "newtemplate=${1:-23}"
 }
 
+# Modify an existing value in a .ini file.
+#
+# Expect: varname newvalue [ini_path] (the latter defaults to -)
+doModini()
+{
+	local varname="$1"; shift
+	[ -z "$varname" ] && return
+	local newvalue="$1"; shift
+	log_msg "    Setting: $varname=$newvalue"
+	sed -E -e "s/^([[:space:]]*(;(.*[^a-zA-Z])?)?)?$varname"'[[:space:]]*=.*$/'"$varname = $newvalue/" -i "${1:--}"
+}
+
+# Make modifications to php.ini as per env variables set.
+# Variable names must be prefixed by "XPHP_INI_" and the remainder of the
+# name must be spelled and capitalized exactly as expected in the php.ini
+# file. Only existing variables in php.ini will be edited. No new ones will
+# be added.
+#
+# Expect: [path to ini file dir] (has a default)
+doPHPini()
+{
+	local PHP_DEPLOY_INI_FILE="php.ini-${1:-production}"
+	shift
+	local INI_FILE_DIR="${1:-${PHP_INI_DIR:-/usr/local/etc/php}}"
+	local PHP_INI_FILE="${INI_FILE_DIR}/php.ini"
+	log_msg "0: Installing ${PHP_DEPLOY_INI_FILE} as php.ini"
+	cp "${INI_FILE_DIR}/${PHP_DEPLOY_INI_FILE}" "${PHP_INI_FILE}"
+	log_msg "0: Modiying $INI_FILE"
+	if [ ! -w "$PHP_INI_FILE" ]; then
+		error_msg "INI file \"$PHP_INI_FILE\" does not exist"
+		return
+	fi
+	local variables=(${!XPHP_INI_*})
+	for envvar in "${variables[@]}"; do
+		if [ ! -z "${!envvar+x}" ]; then
+			local inivar="${envvar#XPHP_INI_}"
+			doModini "$inivar" "${!envvar}" "$PHP_INI_FILE"
+		fi
+	done
+}
+
+# Everything happens in this directory
+#
+cd "$SCRIPT_DIR"
+
+# Modify php.ini
+doPHPini
+log_msg "0: (Re)starting Apache to effectuate changes..."
+apachectl -k start
+
 # Unzip the distribution in the right place
 #
-cd /var/www/html
-
-# Bail if zip file is not present (prevents dual configuration)
-#
-if [ ! -r "${TNG_ZIP_FILE_PATH}" ]; then
-	error_msg "TNG already unpacked and configured, or ZIP file missing: exit!"
-	exit 0
-fi
-
 log_msg "1: Unpacking TNG files..."
 unzip "${TNG_ZIP_FILE_PATH}" >/dev/null
 chown -Rv www-data: . >/dev/null
