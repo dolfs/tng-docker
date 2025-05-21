@@ -206,7 +206,7 @@ doModini()
 # Expect: [path to ini file dir] (has a default)
 doPHPini()
 {
-	local PHP_DEPLOY_INI_FILE="php.ini-${1:-production}"
+	local PHP_DEPLOY_INI_FILE="php.ini-${1:-${XPHP_DEPLOY_INI:-production}}"
 	shift
 	local INI_FILE_DIR="${1:-${PHP_INI_DIR:-/usr/local/etc/php}}"
 	local PHP_INI_FILE="${INI_FILE_DIR}/php.ini"

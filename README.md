@@ -16,10 +16,10 @@ Before you can install, you must download the TNG source code and place the ZIP 
 
 Then, to install TNG in Docker and configure it so it is ready to go, follow these steps:
 
-1. Edit `.env` file as necessary (see below)
-2. Run and install in docker:
-   1. If you are running docker on a remote host, create the remote context by running `docker context create remote-server --docker "host=ssh://root@containers.local` and then switch to using that context by running `docker context use containers`.
-   2. Run `docker compose up`. This should build an image, deploy the necessary MYSQL container, and a container running Apache to serve the TNG site. A script will be run (once) to fully configure the site, based on variables defined in the `.env` file mentioned above. This is, essentially, the equivalent of manually using the `readme.html` file. Use `docker compose up -d` to start in detached mode, but the above is better for testing.
+1. Edit the `.env` file as necessary (see below)
+2. Run and install in Docker:
+   1. If you are running Docker on a remote host, create the remote context by running docker context create remote-server-- docker "//root@containers.local` and " and then switch to using that context by running docker context use containers.
+   2. Run `docker compose up`. This should build an image, deploy the necessary MySQL container, and a container running Apache to serve the TNG site. A script will be run (once) to fully configure the site, based on variables defined in the `.env` file mentioned above. This is, essentially, the equivalent of manually using the `readme.html` file. Use `docker-compose up -d` to start in detached mode; however, the above is better for testing.
 3. Contact your host in a browser: `http://containers.local:8888`. You should see the home page. The hostname to use depends on where your containers were deployed. The port (8888) can be changed using the `.env` file.
 
 That’s all there is to it.
@@ -36,11 +36,11 @@ If you wish to remove the permanent volumes, use:
 $ docker compose down -v
 ```
 
-If you then bring the containers up again later, these volumes will be recreated and will again contain the ZIP file, so initialization will occur again. However, the same `.env`, `tng_init.sh,` and ZIP files as were used initially will be used.
+If you then bring the containers up again later, these volumes will be recreated and will again contain the ZIP file, so that initialization will occur again. However, the same `.env`, `tng_init.sh,` and ZIP files as were used initially will be used.
 
 #### Restarting after editing the `.env` file
 
-If you modify any one of the three critical files, or even download, or replace, the ZIP file, you must start over in a different manner. This is because Docker will maintain a copy of the original image built for the TNG server, and that image contains the old files.
+If you modify any one of the three critical files, or even download, replace, or unzip the ZIP file, you must start over in a different manner. This is because Docker will maintain a copy of the original image built for the TNG server, and that image contains the old files.
 
 To force a completely new build use:
 
@@ -52,11 +52,11 @@ Then, proceed with bringing the containers up.
 
 ### Controlling the configuration
 
-The configuration is controlled by editing the `.env` file before running Docker. This file defines a series of variables used by both the Docker Compose command and the initialization script. Most everything has a default, but at minimum, you should look at the variables for step 8 (create a user) and Step 9 (create a tree).
+The configuration is controlled by editing the `.env` file before running Docker. This file defines a series of variables used by both the Docker Compose command and the initialization script. Most everything has a default, but at minimum, you should look at the variables for Step 8 (create a user) and Step 9 (create a tree).
 
-#### Step 0 - MYSQL
+#### Step 0 - MySQL
 
-Here you will define or change the name of the database used, the username, and password for MYSQL (used by TNG) as well as a root password for the database. These are the variables with their defaults:
+Here you will define or change the name of the database used, the username, and password for y (used by TNG), as well as a root password for the database. These are the variables with their defaults:
 
 ```
 MYSQL_DATABASE=tngdb
@@ -67,7 +67,7 @@ MYSQL_ROOT_PASSWORD=tng_very_secret
 
 #### Step 0 - ZIP file
 
-As long as only a single ZIP file is downloaded, nothing is required. If you have multiple different versions, you should designate the desired one using by uncommenting and defining:
+As long as only a single ZIP file is downloaded, nothing is required. If you have multiple different versions, you should designate the desired one by uncommenting and defining:
 
 ```
 TNG_ZIP_FILE=tngfiles1501.zip
@@ -193,11 +193,27 @@ Change to suit your needs, or leave the default:
 #TNG_TEMPLATE=23
 ```
 
+### Customize `php.ini` settings
+
+As installed, the `php.ini` will be a copy of the supplied production version. You may need to adjust specific settings, and a mechanism is available for doing so. This is illustrated by changing the maximum file upload size from whatever its default is to 32 megabytes.
+
+First, you can choose whether to start with `php.ini-production` or `php.ini-development` by setting a variable `XPHP_DEPLOY_INI`. Its default is “production”, but you can set it to “development”.
+
+Next, you introduce individual settings to override what is in the deployed `php.ini`.You do this by adding in the `.env` file a variable whose name starts with `XPHP_INI_` followed by the name of the variable in the `php.ini` file you wish to change, set to the desired value. Example:
+
+```
+XPHP_INI_upload_max_filesize=32M
+```
+
+This will cause any line in the php.ini file that contains a prior setting of `upload_max_filesize`, whether commented out or not, to be replaced by a line that sets the new value, without being commented out. You can introduce as many `XPHP_INI_` variables as needed.
+
 ## Use without Docker
 
-If you are performing a more traditional installation on a hosted server, you can also use this approach (although I have not specifically tested it). The script in question will still do all the work, but the MySQL configuration is expected to correspond to an already available database.
+If you are performing a more traditional installation on a hosted server, you can also use this approach (although I have not explicitly tested it). The script in question will still do all the work, but the MySQL configuration is expected to correspond to an already available database.
 
 1. Copy the ZIP archive into this directory.
 2. Edit the `.env` file as described above.
-3. Upload all files (`.env`, `tng_init.sh`, and `tngfiles.zip`)to the server’s HTML directory (typically `/var/www/html`). Leave out the `docker-compose.yml` file!
-4. Log in to the server, go tothe HTML directory and execute the script `tng_init.sh`.
+3. Upload all files (`.env`, `tng_init.sh`, and `tngfiles.zip`) to the server’s HTML directory (typically `/var/www/html`). Leave out the `docker-compose.yml` file!
+4. Log in to the server, go to the HTML directory, and execute the script `tng_init.sh`:
+   1. Give it one argument, the name of the server. The script assumes it can reach `http://<server>:80`.
+   2. You may see an error message about failing to modify the `php.ini` file. If you still wish to make those changes, consult the instructions provided by your service provider.
