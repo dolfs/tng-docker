@@ -2,7 +2,15 @@
 
 This “utility” was created to allow a fully automated deployment of TNG into a Docker setup, without having to install, then go to the `readme.html` form, and then fill out all kinds of stuff to configure. This allows an easy and repeatable process.
 
-This directory contains three critical files:
+Why deploy in a Docker setup? There might be several reasons, and possibly others:
+
+* You intend to deploy to a server where Docker is installed, so you can deploy multiple applications easily. This typically occurs when you “self-deploy” within your own network.
+* You want a Docker-based installation for easy development and testing, even though your main deployment is not Docker-based, typically with some provider. This is particularly beneficial when you realize that “experimenting” on a “live” server is not a good idea, and you are looking for an alternative.
+* You want to test out a newer or older version to compare behaviors, or to see if you want to upgrade your main server.
+
+## In this repository
+
+This repository contains three critical files:
 
 * `.env`: Contains environment variable definitions to influence installation and configuration
 * `docker-compose.yml`: Configuration for Docker.
@@ -197,7 +205,7 @@ Change to suit your needs, or leave the default:
 
 As installed, the `php.ini` will be a copy of the supplied production version. You may need to adjust specific settings, and a mechanism is available for doing so. This is illustrated by changing the maximum file upload size from whatever its default is to 32 megabytes.
 
-First, you can choose whether to start with `php.ini-production` or `php.ini-development` by setting a variable `XPHP_DEPLOY_INI`. Its default is “production”, but you can set it to “development”.
+First, you can choose whether to start with `php.ini-production` or `php.ini-development` by setting a variable `XPHP_DEPLOY_INI`. Its default is “production”, but you can set it to “development” if so desired.
 
 Next, you introduce individual settings to override what is in the deployed `php.ini`.You do this by adding in the `.env` file a variable whose name starts with `XPHP_INI_` followed by the name of the variable in the `php.ini` file you wish to change, set to the desired value. Example:
 
@@ -209,7 +217,7 @@ This will cause any line in the php.ini file that contains a prior setting of `u
 
 ## Use without Docker
 
-If you are performing a more traditional installation on a hosted server, you can also use this approach (although I have not explicitly tested it). The script in question will still do all the work, but the MySQL configuration is expected to correspond to an already available database.
+If you are performing a more traditional installation on a hosted server, you can also use this approach (although I have not exhaustively tested it). The script in question will still do all the work, but the MySQL configuration is expected to correspond to an already available database.
 
 1. Copy the ZIP archive into this directory.
 2. Edit the `.env` file as described above.
