@@ -62,6 +62,14 @@ Then, proceed with bringing the containers up.
 
 The configuration is controlled by editing the `.env` file before running Docker. This file defines a series of variables used by both the Docker Compose command and the initialization script. Most everything has a default, but at minimum, you should look at the variables for Step 8 (create a user) and Step 9 (create a tree).
 
+#### PHP_VERSION
+
+Depending on which version of TNG you intend to use, you may need to influence the version of PHP that should be installed. This is achieved by defining a value for the PHP_VERSION variable in the `.env` file.
+
+Generally, you can use values such as “7”, “8”, or more specific values, such as “8.2”. You can find valid values on the [official page for PHP on Docker Hub](https://hub.docker.com/_/php/tags). There, look for any tag of the form “<version>-apache” and pick one of those versions. If you search for “-apache”, you will see all of them, even ones that end in “-apache-bookworm” and such. However, this install will only use the plain “-apache” versions.
+
+When you specify a version such as “8”, what will actually be installed is the latest published version of PHP 8.x. If this variable is not set, the value “8” will be used.
+
 #### Step 0 - MySQL
 
 Here you will define or change the name of the database used, the username, and password for y (used by TNG), as well as a root password for the database. These are the variables with their defaults:

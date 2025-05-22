@@ -37,7 +37,7 @@ services:
         # Ideas for this Dockerfile were inspired by
         #   https://github.com/sprintcube/docker-compose-lamp/blob/master/bin/webserver/Dockerfile
         
-        FROM php:7-apache
+        FROM php:${PHP_VERSION:-8}-apache
 
         COPY ${TNG_ZIP_FILE:-tngfiles1502.zip} /var/www/html/
         COPY ./tng_init.sh /var/www/html
