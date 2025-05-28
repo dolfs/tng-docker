@@ -49,6 +49,7 @@ cleanup()
 	log_msg "Cleaning up installation files..."
 	# Remove cookie file, zip files, and .env
 	rm -f -- "$TNG_ZIP_FILE_PATH" "$COOKIE_FILE" ".env"
+	[ -d patches ] && rm -fr patches
 	# Script remains so docker can run it again.
 	# It will do nothing if no zip file exists.
 }
@@ -146,10 +147,10 @@ doSetLang()
 # Step 6: Establish connection to your database
 doDBParams()
 {
-	# Expect: host db_name db_user db_pw db_port db_socket
+	# Expect: host db_name db_user db_pw db_port db_socket db_new_regex
 	ajax_subroutine settings "database_host=$1" "database_name=$2" \
 		"database_username=$3" "database_password=$4" \
-		"database_port=$5" "database_socket=$6"
+		"database_port=$5" "database_socket=$6" "database_new_regex=$7"
 }
 
 # Step 7: Create the database tables
@@ -203,9 +204,9 @@ doModini()
 {
 	local varname="$1"; shift
 	[ -z "$varname" ] && return
-	local newvalue="$1"; shift
-	log_msg "    Setting: $varname=$newvalue"
-	sed -E -e "s/^([[:space:]]*(;(.*[^a-zA-Z])?)?)?$varname"'[[:space:]]*=.*$/'"$varname = $newvalue/" -i "${1:--}"
+	local subvalue="$varname = $1"; shift
+	log_msg "    Setting: $subvalue"
+	sed -Ee "/$varname"'[[:space:]]*=/{h;s/^([[:space:]]*(;(.*[^a-zA-Z])?)?)?'"$varname"'[[:space:]]*=.*$/'"$subvalue"'/};${x;/^$/{s//'"$subvalue"'/;H};x}' -i "${1:--}"
 }
 
 # Make modifications to php.ini as per env variables set.
@@ -223,7 +224,7 @@ doPHPini()
 	local PHP_INI_FILE="${INI_FILE_DIR}/php.ini"
 	log_msg "0: Installing ${PHP_DEPLOY_INI_FILE} as php.ini"
 	cp "${INI_FILE_DIR}/${PHP_DEPLOY_INI_FILE}" "${PHP_INI_FILE}"
-	log_msg "0: Modiying $INI_FILE"
+	log_msg "0: Modifying $INI_FILE"
 	if [ ! -w "$PHP_INI_FILE" ]; then
 		error_msg "INI file \"$PHP_INI_FILE\" does not exist"
 		return
@@ -248,9 +249,15 @@ apachectl -k start
 
 # Unzip the distribution in the right place
 #
-log_msg "1: Unpacking TNG files..."
+log_msg "1a: Unpacking TNG files..."
 unzip "${TNG_ZIP_FILE_PATH}" >/dev/null
 chown -Rv www-data: . >/dev/null
+[ -d patches ] &&  if [ "$(ls -A patches)" ]; then
+	log_msg "1b: Patching TNG files..."
+	(cd patches; cp -r . ..)
+else
+	log_msg ="1b: No patches to apply..."
+fi
 
 log_msg "2: Viewing readme.html not needed. This script will do everything..."
 
@@ -276,7 +283,7 @@ log_msg "5: Set language..."
 doSetLang "${TNG_LANG:-English (UTF-8)}"
 
 log_msg "6: Configure database connection..."
-doDBParams tng_db "$MYSQL_DATABASE" "$MYSQL_USER" "$MYSQL_PASSWORD" "${TNG_DB_PORT:-}" "${TNG_DB_SOCKET:-}"
+doDBParams tng_db "$MYSQL_DATABASE" "$MYSQL_USER" "$MYSQL_PASSWORD" "${TNG_DB_PORT:-}" "${TNG_DB_SOCKET:-}" "$MYSQL_NEW_REGEX"
 
 log_msg "7: Create database tables..."
 doTables "${TNG_DB_TABLE_PREFIX:-tng_}"  "${TNG_DB_COLLATION:-utf8_general_ci}"

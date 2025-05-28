@@ -1,3 +1,10 @@
+# Re-usable volume definition for tng containers
+#
+x-tng-volumes: &tng-volumes
+  - "/etc/localtime:/etc/localtime:ro"
+  - data:${TNG_HTML_DIR:-/var/www/html}
+  - php_conf:/usr/local/etc/php
+  
 services:
   # Basic image for using TNG. Does NOT have unpacked files and initial configuration!
   tng:
@@ -13,10 +20,7 @@ services:
       retries: 3
     tty: true
     stdin_open: true
-    volumes:
-      - "/etc/localtime:/etc/localtime:ro"
-      - data:/var/www/html
-      - php_conf:/usr/local/etc/php
+    volumes: *tng-volumes
     depends_on:
       tng_db:
         condition: service_healthy
@@ -39,22 +43,21 @@ services:
         
         FROM php:${PHP_VERSION:-8}-apache
 
-        COPY ${TNG_ZIP_FILE:-tngfiles1502.zip} /var/www/html/
-        COPY ./tng_init.sh /var/www/html
-        COPY ./.env /var/www/html
+        COPY ${TNG_ZIP_FILE:-tngfiles1502.zip} ${TNG_HTML_DIR:-/var/www/html}/
+        COPY ./tng_init.sh ${TNG_HTML_DIR:-/var/www/html}
+        COPY ./.env ${TNG_HTML_DIR:-/var/www/html}
+        COPY ./patche[s] ${TNG_HTML_DIR:-/var/www/html}/patches
         
         RUN docker-php-ext-install pdo_mysql
         RUN docker-php-ext-install mysqli
         RUN apt-get update -y && apt-get install -y unzip
+        RUN if [ ! -z "${XDEBUG_VERSION}" ]; then pecl install xdebug; fi
         RUN cp /usr/local/etc/php/php.ini-production /usr/local/etc/php/php.ini
     restart: no
-    command: [ "/bin/bash", "/var/www/html/tng_init.sh" ]
+    command: [ "/bin/bash", "${TNG_HTML_DIR:-/var/www/html}/tng_init.sh" ]
     tty: true
     stdin_open: true
-    volumes:
-      - "/etc/localtime:/etc/localtime:ro"
-      - data:/var/www/html
-      - php_conf:/usr/local/etc/php
+    volumes: *tng-volumes
     depends_on:
       tng_db:
         condition: service_healthy
@@ -87,10 +90,11 @@ services:
 #      - .env
 #    environment:
 #      - PMA_HOST=tng_db
+#      - PMA_PORT=${TNG_DB_PORT:-3306}
 #      - PMA_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
 #      #- PMA_ARBITRARY=1
 #    ports:
-#      - ${PMA_PORT:-8080}:80
+#      - ${PMA_WEB_PORT:-8080}:80
 #    depends_on:
 #      - tng_db
 

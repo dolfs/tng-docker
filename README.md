@@ -60,7 +60,11 @@ Then, proceed with bringing the containers up.
 
 ### Controlling the configuration
 
-The configuration is controlled by editing the `.env` file before running Docker. This file defines a series of variables used by both the Docker Compose command and the initialization script. Most everything has a default, but at minimum, you should look at the variables for Step 8 (create a user) and Step 9 (create a tree).
+Editing the .env file before running Docker controls the configuration. This file defines a series of variables used by the Docker Compose command and the initialization script. Most everything has a default, but you should at least look at the variables for Step 8 (create a user) and Step 9 (create a tree).
+
+#### TNG_HTML_DIR
+
+This specifies the directory where the TNG source files need to be placed. The default value is virtually always what you want unless you have modified the code in `tng_init.sh`.
 
 #### PHP_VERSION
 
@@ -68,22 +72,25 @@ Depending on which version of TNG you intend to use, you may need to influence t
 
 Generally, you can use values such as “7”, “8”, or more specific values, such as “8.2”. You can find valid values on the [official page for PHP on Docker Hub](https://hub.docker.com/_/php/tags). There, look for any tag of the form “<version>-apache” and pick one of those versions. If you search for “-apache”, you will see all of them, even ones that end in “-apache-bookworm” and such. However, this install will only use the plain “-apache” versions.
 
-When you specify a version such as “8”, what will actually be installed is the latest published version of PHP 8.x. If this variable is not set, the value “8” will be used.
+When you specify a version such as “8”, what will be installed is the latest published version of PHP 8.x. If this variable is not set, the value “8” will be used.
 
 #### Step 0 - MySQL
 
-Here you will define or change the name of the database used, the username, and password for y (used by TNG), as well as a root password for the database. These are the variables with their defaults:
+Here you will define or change the name of the database used, the username, and password for MYSQL (used by TNG), as well as a root password for the database. These are the variables with their defaults:
 
 ```
 MYSQL_DATABASE=tngdb
 MYSQL_USER=tng
 MYSQL_PASSWORD=tng_secret
 MYSQL_ROOT_PASSWORD=tng_very_secret
+MYSQL_NEW_REGEX=false
 ```
+
+The `MYSQL_NEW_REGEX` variable should be set to `true`, or `“1”` when your database is MySQL version 8 or later.
 
 #### Step 0 - ZIP file
 
-You must specify a specific ZIP archive as the one used for TNG installation. You should designate the desired one by defining:
+You must specify a specific ZIP archive used for TNG installation. You should designate the desired one by defining:
 
 ```
 TNG_ZIP_FILE=tngfiles1501.zip
@@ -213,11 +220,11 @@ Change to suit your needs, or leave the default:
 
 ### Customize `php.ini` settings
 
-As installed, the `php.ini` will be a copy of the supplied production version. You may need to adjust specific settings, and a mechanism is available for doing so. This is illustrated by changing the maximum file upload size from whatever its default is to 32 megabytes.
+As installed, the `php.ini` will be a copy of the supplied production version. You may need to adjust specific settings, and a mechanism is available. This is illustrated by changing the maximum file upload size from whatever its default is to 32 megabytes.
 
 First, you can choose whether to start with `php.ini-production` or `php.ini-development` by setting a variable `XPHP_DEPLOY_INI`. Its default is “production”, but you can set it to “development” if so desired.
 
-Next, you introduce individual settings to override what is in the deployed `php.ini`.You do this by adding in the `.env` file a variable whose name starts with `XPHP_INI_` followed by the name of the variable in the `php.ini` file you wish to change, set to the desired value. Example:
+Next, you introduce individual settings to override what is in the deployed `php.ini`.You do this by adding in the `.env` file a variable whose name starts with `XPHP_INI_` followed by the variable's name in the `php.ini` file you wish to change, set to the desired value. Example:
 
 ```
 XPHP_INI_upload_max_filesize=32M
@@ -225,13 +232,44 @@ XPHP_INI_upload_max_filesize=32M
 
 This will cause any line in the php.ini file that contains a prior setting of `upload_max_filesize`, whether commented out or not, to be replaced by a line that sets the new value, without being commented out. You can introduce as many `XPHP_INI_` variables as needed.
 
+### Applying TNG patches
+
+Occasionally, you may use files slightly different from those within the source code in the ZIP archive. One such case is if Darrin has supplied you with one or more altered (patched) files to try a bug fix. The following mechanism is available to prevent you from having to create a modified ZIP archive.
+
+Alongside the ZIP archive file, you can create a directory named `patches`. This directory may contain files that will be a one-for-one replacement of source files from the ZIP archive. To replace files in sub-directories, you must mimic the necessary directory structure inside the patches directory.
+
+For example:
+
+```
+patches
+├── admin
+│   └── fixme.php
+└── heatmap.php
+    
+```
+
+This will replace the `heat map.php` file at the top level in the source code and the `fix.php` file inside the admin folder.
+
+Once the container is prepared, the patches directory will no longer be present.
+
+**WARNING**: If you use this facility, remember that you may not need these patches as you switch to another ZIP archive. You should then remove them because the facility will copy them, overwriting a file you likely do not want patched.
+
+### Activating PHPmyAdmin
+
+PHPMyAdmin can be a valuable tool in some circumstances. If you want it installed and configured as part of your deployment:
+
+* Uncomment the lines for that configuration in the file `docker-compose.yml`
+* Configure the web port to be used by editing the value of `PMA_WEB_PORT` in the `.env` file (default is 8080).
+
+Once deployed, you will be able to access PHPMyAdmin on the configured port. The username and password to be used are those configured for MySQL.
+
 ## Use without Docker
 
-If you are performing a more traditional installation on a hosted server, you can also use this approach (although I have not exhaustively tested it). The script in question will still do all the work, but the MySQL configuration is expected to correspond to an already available database.
+If you perform a more traditional installation on a hosted server, you can also use this approach (although I have not exhaustively tested it). The script will still work, but the MySQL configuration is expected to correspond to an already available database (that you are responsible for creating and configuring).
 
 1. Copy the ZIP archive into this directory.
 2. Edit the `.env` file as described above.
 3. Upload all files (`.env`, `tng_init.sh`, and `tngfiles.zip`) to the server’s HTML directory (typically `/var/www/html`). Leave out the `docker-compose.yml` file!
 4. Log in to the server, go to the HTML directory, and execute the script `tng_init.sh`:
-   1. Give it one argument, the name of the server. The script assumes it can reach `http://<server>:80`.
+   1. Give it one argument, which represents the name of the server. The script assumes it can reach `http://<server>:80`.
    2. You may see an error message about failing to modify the `php.ini` file. If you still wish to make those changes, consult the instructions provided by your service provider.
