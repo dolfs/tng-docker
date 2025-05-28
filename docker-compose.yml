@@ -46,6 +46,7 @@ services:
         COPY ${TNG_ZIP_FILE:-tngfiles1502.zip} ${TNG_HTML_DIR:-/var/www/html}/
         COPY ./tng_init.sh ${TNG_HTML_DIR:-/var/www/html}
         COPY ./.env ${TNG_HTML_DIR:-/var/www/html}
+        COPY ./mod[s] ${TNG_HTML_DIR:-/var/www/html}/${TNG_FOLDER_MODSPATH:-mods}
         COPY ./patche[s] ${TNG_HTML_DIR:-/var/www/html}/patches
         
         RUN docker-php-ext-install pdo_mysql
